@@ -108,6 +108,7 @@ PROMPT='> %(!.%F{red}#%f.%F{green}$%f) '
 RPROMPT='$(bureau_git_prompt)'
 
 bindkey -v
+bindkey '^?' backward-delete-char
 export PATH="/home/arein/.local/bin:$PATH"
 export PATH="/home/arein/.cargo/bin:$PATH"
 export EDITOR=nvim

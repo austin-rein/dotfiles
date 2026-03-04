@@ -1,3 +1,4 @@
+# this is a mess, must organize in the future
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.tabstop = 4
@@ -76,16 +77,59 @@ for _, server in ipairs(servers) do
   vim.lsp.enable(server)
 end
 
+-- vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "BufWritePost" }, {
+--   callback = function()
+--     vim.fn.jobstart({"git", "branch", "--show-current"}, {
+--       stdout_buffered = true,
+--       on_stdout = function(_, data)
+--         if data and data[1] and data[1] ~= "" then
+--           vim.b.git_branch = "[Git: " .. data[1] .. "]"
+--         else
+--           vim.b.git_branch = ""
+--         end
+--       end
+--     })
+--   end
+-- })
+
+-- function _G.GitStatus()
+--   return vim.b.git_branch or ""
+-- end
+-- 
+-- function _G.LspStatus()
+--   local clients = vim.lsp.get_clients({ bufnr = 0 })
+--   if #clients == 0 then return "" end
+--   local client_names = {}
+--   for _, client in ipairs(clients) do
+--     table.insert(client_names, client.name)
+--   end
+--   return "[LSP: " .. table.concat(client_names, ", ") .. "]"
+-- end
+-- 
+-- vim.opt.statusline = " %f %m %{v:lua.GitStatus()} %= %{v:lua.LspStatus()}   %l:%c "
+
+
 vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "BufWritePost" }, {
   callback = function()
-    vim.fn.jobstart({"git", "branch", "--show-current"}, {
+    vim.fn.jobstart({"git", "status", "--porcelain", "-b"}, {
       stdout_buffered = true,
       on_stdout = function(_, data)
-        if data and data[1] and data[1] ~= "" then
-          vim.b.git_branch = "[Git: " .. data[1] .. "]"
-        else
+        if not data or not data[1] or string.sub(data[1], 1, 2) ~= "##" then
           vim.b.git_branch = ""
+          return
         end
+        local branch = data[1]:match("^## No commits yet on (.*)")
+                    or data[1]:match("^## (.-)%.%.%.")
+                    or data[1]:match("^## (.*)")
+        local is_dirty = false
+        for i = 2, #data do
+          if data[i] ~= "" then
+            is_dirty = true
+            break
+          end
+        end
+        local status_marker = is_dirty and " [+]" or ""
+        vim.b.git_branch = "[Git: " .. branch .. status_marker .. "]"
       end
     })
   end
@@ -106,4 +150,3 @@ function _G.LspStatus()
 end
 
 vim.opt.statusline = " %f %m %{v:lua.GitStatus()} %= %{v:lua.LspStatus()}   %l:%c "
-
