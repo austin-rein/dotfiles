@@ -1,32 +1,42 @@
-# this is a mess, must organize in the future
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.tabstop = 4
-vim.opt.shiftwidth = 4
-vim.opt.expandtab = true
-vim.opt.clipboard = 'unnamedplus'
-vim.opt.swapfile = false
-vim.opt.signcolumn = 'yes'
+-- this is a mess, must organize in the future, also this 
+-- was originally not commented correctly
 
-vim.opt.title = true
-vim.opt.timeoutlen = 300
-vim.opt.ttimeoutlen = 10
-vim.opt.autoread = true
+-- [General settings]
+vim.g.mapleader = " " -- Sets leader key to space
+vim.opt.number = true -- Show line numbers
+vim.opt.relativenumber = true -- Show line numbers relative to current line
+vim.opt.tabstop = 4 -- Tab size
+vim.opt.shiftwidth = 4 -- Indent size
+vim.opt.expandtab = true -- Tabs are replaced with spaces
+vim.opt.clipboard = 'unnamedplus' -- Share the vim clipboard with system
+vim.opt.swapfile = false -- I save often, so I don't need this
+vim.opt.signcolumn = 'yes' -- Keeps the lsp gutter always visible
+vim.opt.title = true -- Sets the terminal title to nvim
+vim.opt.timeoutlen = 300 -- tmux optimization
+vim.opt.ttimeoutlen = 10 -- tmux optimization
+vim.opt.autoread = true -- tmux optimization
+vim.opt.termguicolors = false -- Use my terminal's colors
+vim.cmd.colorscheme('vim') -- Use my terminal's colors
 
-vim.opt.termguicolors = false
-vim.cmd.colorscheme('vim')
-
+-- [Overwrite certain background colors]
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 vim.api.nvim_set_hl(0, "SignColumn", { bg = "none" })
 vim.api.nvim_set_hl(0, "LineNr", { bg = "none" })
 vim.api.nvim_set_hl(0, "CursorLineNr", { bg = "none" })
 
+-- [Lex customization] 
+vim.g.netrw_banner = 0 -- Removes the banner
+vim.g.netrw_browse_split = 4 -- Opens selected file in original window
+vim.g.netrw_winsize = 25 -- Set Lex size to 25% of window
+vim.keymap.set('n', '<leader>e', '<cmd>Lex<CR>', { noremap = true, silent = true, desc = 'Toggle Netrw Explorer' }) -- space + e to toggle Lex
+
+-- [LSP Settings]
 vim.diagnostic.config({
-  virtual_text = true,
-  signs = true,
-  underline = true,
-  update_in_insert = false,
+  virtual_text = true, -- Shows errors inline
+  signs = true, -- Shows icons in the left gutter
+  underline = true, -- Unerlines warnings and errors
+  update_in_insert = false, -- Waits until exiting insert mode
 })
 
 -- Lua
@@ -36,6 +46,7 @@ vim.lsp.config('lua_ls', {
   root_markers = { '.luarc.json', '.git' },
   settings = {
     Lua = {
+    -- Setting to explicityly ignore vim for init.lua
       diagnostics = {
         globals = { 'vim' }
       }
@@ -71,44 +82,27 @@ vim.lsp.config('gopls', {
   root_markers = { 'go.mod', '.git' },
 })
 
-local servers = { 'lua_ls', 'pylsp', 'clangd', 'rust_analyzer', 'gopls' }
+-- Haskell
+vim.lsp.config('hls', {
+  cmd = { 'haskell-language-server-wrapper', '--lsp' },
+  filetypes = { 'haskell', 'lhaskell' },
+  root_markers = { 'hie.yaml', 'cabal.project', 'package.yaml', '.git' },
+})
 
-for _, server in ipairs(servers) do
+-- Markdown
+vim.lsp.config('marksman', {
+  cmd = { 'marksman', 'server' },
+  filetypes = { 'markdown', 'markdown.mdx' },
+  root_markers = { '.git', '.marksman.toml' },
+})
+
+local servers = { 'lua_ls', 'pylsp', 'clangd', 'rust_analyzer', 'gopls', 'hls', 'marksman' }
+for _, server in ipairs(servers) do -- Loop to load all of the LSP servers
   vim.lsp.enable(server)
 end
 
--- vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "BufWritePost" }, {
---   callback = function()
---     vim.fn.jobstart({"git", "branch", "--show-current"}, {
---       stdout_buffered = true,
---       on_stdout = function(_, data)
---         if data and data[1] and data[1] ~= "" then
---           vim.b.git_branch = "[Git: " .. data[1] .. "]"
---         else
---           vim.b.git_branch = ""
---         end
---       end
---     })
---   end
--- })
-
--- function _G.GitStatus()
---   return vim.b.git_branch or ""
--- end
--- 
--- function _G.LspStatus()
---   local clients = vim.lsp.get_clients({ bufnr = 0 })
---   if #clients == 0 then return "" end
---   local client_names = {}
---   for _, client in ipairs(clients) do
---     table.insert(client_names, client.name)
---   end
---   return "[LSP: " .. table.concat(client_names, ", ") .. "]"
--- end
--- 
--- vim.opt.statusline = " %f %m %{v:lua.GitStatus()} %= %{v:lua.LspStatus()}   %l:%c "
-
-
+-- [Status bar customization]
+-- Gets the git status for the active directory
 vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "BufWritePost" }, {
   callback = function()
     vim.fn.jobstart({"git", "status", "--porcelain", "-b"}, {
@@ -138,7 +132,7 @@ vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "BufWritePost" }, {
 function _G.GitStatus()
   return vim.b.git_branch or ""
 end
-
+-- Gets the LSP status for the current file
 function _G.LspStatus()
   local clients = vim.lsp.get_clients({ bufnr = 0 })
   if #clients == 0 then return "" end
@@ -148,5 +142,5 @@ function _G.LspStatus()
   end
   return "[LSP: " .. table.concat(client_names, ", ") .. "]"
 end
-
+-- The actual command that sets the statusline based on the functions
 vim.opt.statusline = " %f %m %{v:lua.GitStatus()} %= %{v:lua.LspStatus()}   %l:%c "

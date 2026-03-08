@@ -112,3 +112,5 @@ bindkey '^?' backward-delete-char
 export PATH="/home/arein/.local/bin:$PATH"
 export PATH="/home/arein/.cargo/bin:$PATH"
 export EDITOR=nvim
+
+[ -f "/home/arein/.ghcup/env" ] && . "/home/arein/.ghcup/env" # ghcup-env
