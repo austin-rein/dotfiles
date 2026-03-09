@@ -37,6 +37,7 @@ vim.diagnostic.config({
   signs = true, -- Shows icons in the left gutter
   underline = true, -- Unerlines warnings and errors
   update_in_insert = false, -- Waits until exiting insert mode
+
 })
 
 -- Lua
@@ -96,6 +97,8 @@ vim.lsp.config('marksman', {
   root_markers = { '.git', '.marksman.toml' },
 })
 
+
+
 local servers = { 'lua_ls', 'pylsp', 'clangd', 'rust_analyzer', 'gopls', 'hls', 'marksman' }
 for _, server in ipairs(servers) do -- Loop to load all of the LSP servers
   vim.lsp.enable(server)
@@ -144,3 +147,58 @@ function _G.LspStatus()
 end
 -- The actual command that sets the statusline based on the functions
 vim.opt.statusline = " %f %m %{v:lua.GitStatus()} %= %{v:lua.LspStatus()}   %l:%c "
+
+-- Markdown file optimization
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "markdown", "markdown.mdx" },
+  callback = function()
+    vim.opt_local.wrap = true         -- Wrap lines at edge of screen
+    vim.opt_local.linebreak = true    -- Don't split words in half
+    vim.opt_local.spell = true        -- Enable spell checking
+    vim.opt_local.spelllang = "en_us" -- Set dictionary language to english us
+  end,
+})
+
+vim.opt.completeopt = { "menu", "menuone", "noselect" }
+
+-- Smart Tab completion logic
+vim.keymap.set('i', '<Tab>', function()
+  if vim.fn.pumvisible() == 1 then
+    return '<C-n>' -- Keep Tab as a fallback to go down
+  else
+    -- Check if cursor is after a space or at the start of a line
+    local col = vim.fn.col('.') - 1
+    if col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') then
+      return '<Tab>' -- Insert a regular tab space
+    else
+      return '<C-x><C-o>' -- Trigger native LSP omni-completion
+    end
+  end
+end, { expr = true, replace_keycodes = true, desc = "Autocomplete with Tab" })
+
+-- Use 'j' to navigate DOWN the autocomplete menu
+vim.keymap.set('i', 'j', function()
+  if vim.fn.pumvisible() == 1 then
+    return '<C-n>' -- Next item
+  else
+    return 'j'     -- Type 'j' normally
+  end
+end, { expr = true, replace_keycodes = true, desc = "Menu Down (j)" })
+
+-- Use 'k' to navigate UP the autocomplete menu
+vim.keymap.set('i', 'k', function()
+  if vim.fn.pumvisible() == 1 then
+    return '<C-p>' -- Previous item
+  else
+    return 'k'     -- Type 'k' normally
+  end
+end, { expr = true, replace_keycodes = true, desc = "Menu Up (k)" })
+
+-- Press Enter to confirm selection without accidentally adding a new line
+vim.keymap.set('i', '<CR>', function()
+  if vim.fn.pumvisible() == 1 then
+    return '<C-y>' -- Accept selected item
+  else
+    return '<CR>'
+  end
+end, { expr = true, replace_keycodes = true, desc = "Confirm Autocomplete" })
